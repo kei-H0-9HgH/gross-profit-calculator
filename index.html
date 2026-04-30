@@ -157,12 +157,13 @@
 <body>
   <main class="container">
     <h1>粗利計算ツール</h1>
-    <p class="desc">売価・原価・目標粗利率を入力するだけで、利益額や値引き可能額を自動計算します。</p>
+    <p class="desc">売価・原価・目標粗利率から粗利を計算し、原価と目標粗利率から適正売価も逆算します。</p>
 
     <section class="grid">
       <div>
         <label for="price">売価（円）</label>
         <input id="price" type="number" min="0" step="0.01" placeholder="例：10000" />
+        <p class="hint">適正売価だけを逆算する場合は未入力でも計算できます。</p>
       </div>
 
       <div>
@@ -187,6 +188,8 @@
       <div class="row"><span>粗利率</span><span id="grossRate" class="value">-</span></div>
       <div class="row"><span>目標粗利率を達成するための最大原価</span><span id="maxCost" class="value">-</span></div>
       <div class="row"><span>値引き可能額（目標粗利率を維持）</span><span id="discount" class="value">-</span></div>
+      <div class="row"><span>適正売価（原価 ÷ (1 - 目標粗利率 / 100)）</span><span id="targetPrice" class="value">-</span></div>
+      <div class="row"><span>適正売価（100円単位切り上げ）</span><span id="targetPriceRounded" class="value">-</span></div>
     </section>
 
     <p id="error" class="error"></p>
@@ -196,7 +199,8 @@
       ・利益額 = 売価 - 原価<br>
       ・粗利率 = (売価 - 原価) ÷ 売価 × 100<br>
       ・最大原価 = 売価 × (1 - 目標粗利率)<br>
-      ・値引き可能額 = 売価 - (原価 ÷ (1 - 目標粗利率))
+      ・値引き可能額 = 売価 - (原価 ÷ (1 - 目標粗利率))<br>
+      ・適正売価 = 原価 ÷ (1 - 目標粗利率 ÷ 100)
     </div>
   </main>
 
@@ -209,6 +213,8 @@
     const grossRateEl = document.getElementById('grossRate');
     const maxCostEl = document.getElementById('maxCost');
     const discountEl = document.getElementById('discount');
+    const targetPriceEl = document.getElementById('targetPrice');
+    const targetPriceRoundedEl = document.getElementById('targetPriceRounded');
     const errorEl = document.getElementById('error');
 
     const calcBtn = document.getElementById('calcBtn');
@@ -227,22 +233,27 @@
       grossRateEl.textContent = '-';
       maxCostEl.textContent = '-';
       discountEl.textContent = '-';
+      targetPriceEl.textContent = '-';
+      targetPriceRoundedEl.textContent = '-';
       errorEl.textContent = '';
     }
 
     function calculate() {
+      resetOutputs();
+
+      const hasPrice = priceEl.value !== '';
+      const hasCost = costEl.value !== '';
+      const hasTargetRate = targetRateEl.value !== '';
       const price = Number(priceEl.value);
       const cost = Number(costEl.value);
       const targetRatePercent = Number(targetRateEl.value);
 
-      errorEl.textContent = '';
-
-      if (!Number.isFinite(price) || !Number.isFinite(cost) || !Number.isFinite(targetRatePercent)) {
-        errorEl.textContent = 'すべての項目を入力してください。';
+      if (!hasCost || !hasTargetRate) {
+        errorEl.textContent = '原価と目標粗利率を入力してください。売価は任意です。';
         return;
       }
-      if (price <= 0) {
-        errorEl.textContent = '売価は0より大きい値を入力してください。';
+      if (!Number.isFinite(cost) || !Number.isFinite(targetRatePercent) || (hasPrice && !Number.isFinite(price))) {
+        errorEl.textContent = '入力値を確認してください。';
         return;
       }
       if (cost < 0) {
@@ -253,21 +264,32 @@
         errorEl.textContent = '目標粗利率は0以上100未満で入力してください。';
         return;
       }
+      if (hasPrice && price <= 0) {
+        errorEl.textContent = '売価を入力する場合は0より大きい値にしてください。';
+        return;
+      }
 
       const targetRate = targetRatePercent / 100;
-      const profit = price - cost;
-      const grossRate = (profit / price) * 100;
-      const maxCost = price * (1 - targetRate);
-      const minSellingPriceAtTarget = cost / (1 - targetRate);
-      const discount = price - minSellingPriceAtTarget;
+      const targetPrice = cost / (1 - targetRate);
+      const targetPriceRounded = Math.ceil(targetPrice / 100) * 100;
 
-      profitEl.textContent = formatYen(profit);
-      grossRateEl.textContent = formatPercent(grossRate);
-      maxCostEl.textContent = formatYen(maxCost);
-      discountEl.textContent = formatYen(Math.max(0, discount));
+      targetPriceEl.textContent = formatYen(targetPrice);
+      targetPriceRoundedEl.textContent = formatYen(targetPriceRounded);
 
-      if (discount < 0) {
-        errorEl.textContent = '現在の売価では目標粗利率を満たせません（値引き余地なし）。';
+      if (hasPrice) {
+        const profit = price - cost;
+        const grossRate = (profit / price) * 100;
+        const maxCost = price * (1 - targetRate);
+        const discount = price - targetPrice;
+
+        profitEl.textContent = formatYen(profit);
+        grossRateEl.textContent = formatPercent(grossRate);
+        maxCostEl.textContent = formatYen(maxCost);
+        discountEl.textContent = formatYen(Math.max(0, discount));
+
+        if (discount < 0) {
+          errorEl.textContent = '現在の売価では目標粗利率を満たせません（値引き余地なし）。';
+        }
       }
     }
 
