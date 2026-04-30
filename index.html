@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>粗利計算ツール</title>
+
+  <link rel="apple-touch-icon" href="icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="粗利計算">
+  <style>
+    :root {
+      --bg: #f6f8fb;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --border: #d1d5db;
+      --ok: #059669;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Yu Gothic UI", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.6;
+      padding: 24px 16px;
+    }
+
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 1.6rem;
+    }
+
+    .desc {
+      margin: 0 0 20px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    @media (min-width: 640px) {
+      .grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+
+    .hint {
+      margin-top: 4px;
+      font-size: 0.83rem;
+      color: var(--muted);
+    }
+
+    .buttons {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    button {
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    #calcBtn {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    #calcBtn:hover { background: var(--primary-dark); }
+
+    #clearBtn {
+      background: #e5e7eb;
+      color: #111827;
+    }
+
+    .results {
+      border-top: 1px solid var(--border);
+      padding-top: 16px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 8px 0;
+      border-bottom: 1px dashed #e5e7eb;
+    }
+
+    .row:last-child { border-bottom: none; }
+
+    .value {
+      font-weight: 700;
+      color: var(--ok);
+      white-space: nowrap;
+    }
+
+    .error {
+      margin-top: 8px;
+      color: #dc2626;
+      font-weight: 600;
+      min-height: 1.2em;
+    }
+
+    .formula {
+      margin-top: 16px;
+      font-size: 0.85rem;
+      color: var(--muted);
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <h1>粗利計算ツール</h1>
+    <p class="desc">売価・原価・目標粗利率を入力するだけで、利益額や値引き可能額を自動計算します。</p>
+
+    <section class="grid">
+      <div>
+        <label for="price">売価（円）</label>
+        <input id="price" type="number" min="0" step="0.01" placeholder="例：10000" />
+      </div>
+
+      <div>
+        <label for="cost">原価（円）</label>
+        <input id="cost" type="number" min="0" step="0.01" placeholder="例：6500" />
+      </div>
+
+      <div>
+        <label for="targetRate">目標粗利率（%）</label>
+        <input id="targetRate" type="number" min="0" max="100" step="0.01" placeholder="例：30" />
+        <p class="hint">0〜100の範囲で入力してください。</p>
+      </div>
+    </section>
+
+    <div class="buttons">
+      <button id="calcBtn" type="button">計算する</button>
+      <button id="clearBtn" type="button">クリア</button>
+    </div>
+
+    <section class="results">
+      <div class="row"><span>利益額</span><span id="profit" class="value">-</span></div>
+      <div class="row"><span>粗利率</span><span id="grossRate" class="value">-</span></div>
+      <div class="row"><span>目標粗利率を達成するための最大原価</span><span id="maxCost" class="value">-</span></div>
+      <div class="row"><span>値引き可能額（目標粗利率を維持）</span><span id="discount" class="value">-</span></div>
+    </section>
+
+    <p id="error" class="error"></p>
+
+    <div class="formula">
+      計算式：<br>
+      ・利益額 = 売価 - 原価<br>
+      ・粗利率 = (売価 - 原価) ÷ 売価 × 100<br>
+      ・最大原価 = 売価 × (1 - 目標粗利率)<br>
+      ・値引き可能額 = 売価 - (原価 ÷ (1 - 目標粗利率))
+    </div>
+  </main>
+
+  <script>
+    const priceEl = document.getElementById('price');
+    const costEl = document.getElementById('cost');
+    const targetRateEl = document.getElementById('targetRate');
+
+    const profitEl = document.getElementById('profit');
+    const grossRateEl = document.getElementById('grossRate');
+    const maxCostEl = document.getElementById('maxCost');
+    const discountEl = document.getElementById('discount');
+    const errorEl = document.getElementById('error');
+
+    const calcBtn = document.getElementById('calcBtn');
+    const clearBtn = document.getElementById('clearBtn');
+
+    function formatYen(num) {
+      return new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY', maximumFractionDigits: 0 }).format(num);
+    }
+
+    function formatPercent(num) {
+      return `${num.toFixed(2)}%`;
+    }
+
+    function resetOutputs() {
+      profitEl.textContent = '-';
+      grossRateEl.textContent = '-';
+      maxCostEl.textContent = '-';
+      discountEl.textContent = '-';
+      errorEl.textContent = '';
+    }
+
+    function calculate() {
+      const price = Number(priceEl.value);
+      const cost = Number(costEl.value);
+      const targetRatePercent = Number(targetRateEl.value);
+
+      errorEl.textContent = '';
+
+      if (!Number.isFinite(price) || !Number.isFinite(cost) || !Number.isFinite(targetRatePercent)) {
+        errorEl.textContent = 'すべての項目を入力してください。';
+        return;
+      }
+      if (price <= 0) {
+        errorEl.textContent = '売価は0より大きい値を入力してください。';
+        return;
+      }
+      if (cost < 0) {
+        errorEl.textContent = '原価は0以上の値を入力してください。';
+        return;
+      }
+      if (targetRatePercent < 0 || targetRatePercent >= 100) {
+        errorEl.textContent = '目標粗利率は0以上100未満で入力してください。';
+        return;
+      }
+
+      const targetRate = targetRatePercent / 100;
+      const profit = price - cost;
+      const grossRate = (profit / price) * 100;
+      const maxCost = price * (1 - targetRate);
+      const minSellingPriceAtTarget = cost / (1 - targetRate);
+      const discount = price - minSellingPriceAtTarget;
+
+      profitEl.textContent = formatYen(profit);
+      grossRateEl.textContent = formatPercent(grossRate);
+      maxCostEl.textContent = formatYen(maxCost);
+      discountEl.textContent = formatYen(Math.max(0, discount));
+
+      if (discount < 0) {
+        errorEl.textContent = '現在の売価では目標粗利率を満たせません（値引き余地なし）。';
+      }
+    }
+
+    calcBtn.addEventListener('click', calculate);
+
+    clearBtn.addEventListener('click', () => {
+      priceEl.value = '';
+      costEl.value = '';
+      targetRateEl.value = '';
+      resetOutputs();
+    });
+
+    [priceEl, costEl, targetRateEl].forEach(el => {
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') calculate();
+      });
+    });
+
+    resetOutputs();
+  </script>
+</body>
+</html>
