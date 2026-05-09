@@ -3,769 +3,312 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>資金繰り表（4ヶ月）</title>
+  <title>粗利計算ツール</title>
+
+  <link rel="apple-touch-icon" href="icon.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="資金繰り表">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="粗利計算">
   <style>
-    /* ===== 配色・基本変数 ===== */
     :root {
-      --bg: #f6f7f9;
-      --surface: #ffffff;
-      --text: #111827;
+      --bg: #f6f8fb;
+      --card: #ffffff;
+      --text: #1f2937;
       --muted: #6b7280;
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
       --border: #d1d5db;
-      --grid: #e5e7eb;
-      --primary: #1f3b8a;
-      --primary-hover: #16306d;
-      --section-bg: #f3f4f6;
-      --total-bg: #eef2ff;
-      --opening-bg: #fffbe7;
-      --negative: #dc2626;
-      --negative-bg: #fef2f2;
+      --ok: #059669;
     }
 
     * { box-sizing: border-box; }
 
     body {
       margin: 0;
-      font-family: "Yu Gothic UI", "Hiragino Kaku Gothic ProN", Meiryo, "MS PGothic", sans-serif;
+      font-family: "Yu Gothic UI", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
       color: var(--text);
       background: var(--bg);
-      line-height: 1.5;
-      padding: 16px;
+      line-height: 1.6;
+      padding: 24px 16px;
     }
 
-    .app {
-      max-width: 1200px;
+    .container {
+      max-width: 760px;
       margin: 0 auto;
-      background: var(--surface);
+      background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 20px;
-    }
-
-    /* ===== ヘッダ ===== */
-    header.app-header {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 16px;
-      padding-bottom: 12px;
-      border-bottom: 2px solid var(--text);
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
     }
 
     h1 {
-      margin: 0;
-      font-size: 1.4rem;
-      letter-spacing: 0.05em;
+      margin: 0 0 8px;
+      font-size: 1.6rem;
     }
 
-    .meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      align-items: center;
-      font-size: 0.9rem;
+    .desc {
+      margin: 0 0 20px;
       color: var(--muted);
+      font-size: 0.95rem;
     }
 
-    .meta label {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-      color: var(--text);
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+      margin-bottom: 18px;
     }
 
-    /* ===== ツールバー ===== */
-    .toolbar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 14px;
+    @media (min-width: 640px) {
+      .grid {
+        grid-template-columns: 1fr 1fr;
+      }
     }
 
-    button, select, input[type="month"], input[type="text"] {
-      font-family: inherit;
-      font-size: 0.9rem;
-      padding: 6px 10px;
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      background: #fff;
-      color: var(--text);
-    }
-
-    button { font-weight: 600; cursor: pointer; }
-    button:hover { background: #f3f4f6; }
-
-    button.primary {
-      background: var(--primary);
-      color: #fff;
-      border-color: var(--primary);
-    }
-    button.primary:hover { background: var(--primary-hover); }
-
-    button.danger {
-      background: #fff;
-      color: var(--negative);
-      border-color: var(--negative);
-    }
-    button.danger:hover { background: var(--negative-bg); }
-
-    /* ===== 項目追加フォーム ===== */
-    .add-item-form {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-items: center;
-      margin-bottom: 14px;
-      padding: 10px 12px;
-      background: #f9fafb;
-      border: 1px dashed var(--border);
-      border-radius: 6px;
-      font-size: 0.9rem;
-    }
-
-    .add-item-form label {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-    }
-
-    .add-item-form input[type="text"] { min-width: 160px; }
-
-    /* ===== 表 ===== */
-    .table-wrap {
-      overflow-x: auto;
-      border: 1px solid var(--border);
-      border-radius: 4px;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      min-width: 720px;
-      background: #fff;
-    }
-
-    th, td {
-      border: 1px solid var(--grid);
-      padding: 6px 8px;
-      text-align: right;
-      vertical-align: middle;
-    }
-
-    thead th {
-      background: var(--section-bg);
-      font-weight: 700;
-      text-align: center;
-      white-space: nowrap;
-    }
-
-    tbody th {
-      text-align: left;
-      background: #fafafa;
-      font-weight: 500;
-      white-space: nowrap;
-      min-width: 160px;
-      position: sticky;
-      left: 0;
-      z-index: 1;
-    }
-
-    tr.section-header th {
-      background: var(--section-bg);
-      text-align: left;
-      font-weight: 700;
-      letter-spacing: 0.05em;
-    }
-
-    tr.total th, tr.total td {
-      background: var(--total-bg);
-      font-weight: 700;
-    }
-
-    tr.opening th, tr.opening td {
-      background: var(--opening-bg);
+    label {
+      display: block;
+      margin-bottom: 6px;
       font-weight: 600;
     }
 
-    tr.closing th, tr.closing td {
-      background: var(--total-bg);
-      font-weight: 700;
-      font-size: 1.1em;
-    }
-
-    /* セル内入力欄（数字を大きめに） */
-    td input[type="number"] {
+    input {
       width: 100%;
-      padding: 6px 8px;
-      border: 1px solid transparent;
-      border-radius: 3px;
-      font-size: 1.05em;
-      font-family: inherit;
-      text-align: right;
-      background: transparent;
-      color: var(--text);
-      -moz-appearance: textfield;
-    }
-    td input[type="number"]::-webkit-outer-spin-button,
-    td input[type="number"]::-webkit-inner-spin-button {
-      -webkit-appearance: none;
-      margin: 0;
-    }
-    td input[type="number"]:focus {
-      outline: none;
-      border-color: var(--primary);
-      background: #fff;
-    }
-    td input[type="number"]:hover { border-color: var(--border); }
-
-    td.derived {
-      font-size: 1.05em;
-      font-variant-numeric: tabular-nums;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 1rem;
     }
 
-    /* マイナス時の強調 */
-    .negative {
-      color: var(--negative) !important;
-      background: var(--negative-bg) !important;
+    .hint {
+      margin-top: 4px;
+      font-size: 0.83rem;
+      color: var(--muted);
     }
 
-    /* 項目ラベル＋削除ボタン */
-    .item-label {
+    .buttons {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    button {
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+
+    #calcBtn {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    #calcBtn:hover { background: var(--primary-dark); }
+
+    #clearBtn {
+      background: #e5e7eb;
+      color: #111827;
+    }
+
+    .results {
+      border-top: 1px solid var(--border);
+      padding-top: 16px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .row {
       display: flex;
       justify-content: space-between;
-      align-items: center;
-      gap: 8px;
+      gap: 12px;
+      padding: 8px 0;
+      border-bottom: 1px dashed #e5e7eb;
     }
-    .remove-btn {
-      border: none;
-      background: transparent;
-      color: var(--muted);
-      cursor: pointer;
-      font-size: 1.1em;
-      padding: 0 4px;
-      font-weight: 700;
-    }
-    .remove-btn:hover { color: var(--negative); background: transparent; }
 
-    footer {
+    .row:last-child { border-bottom: none; }
+
+    .value {
+      font-weight: 700;
+      color: var(--ok);
+      white-space: nowrap;
+    }
+
+    .error {
+      margin-top: 8px;
+      color: #dc2626;
+      font-weight: 600;
+      min-height: 1.2em;
+    }
+
+    .formula {
       margin-top: 16px;
       font-size: 0.85rem;
       color: var(--muted);
-    }
-
-    /* ===== レスポンシブ（スマホ） ===== */
-    @media (max-width: 720px) {
-      body { padding: 8px; }
-      .app { padding: 12px; }
-      h1 { font-size: 1.15rem; }
-      th, td { padding: 4px 6px; font-size: 0.9rem; }
-      tbody th { min-width: 120px; }
-    }
-
-    /* ===== 印刷（A4横） ===== */
-    @media print {
-      @page { size: A4 landscape; margin: 10mm; }
-      body { background: #fff; padding: 0; }
-      .app { border: none; padding: 0; max-width: none; border-radius: 0; }
-      .toolbar,
-      .add-item-form,
-      .meta,
-      .remove-btn,
-      footer {
-        display: none !important;
-      }
-      header.app-header { border-bottom: 2px solid #000; }
-      .table-wrap { overflow: visible; border: none; }
-      table { min-width: 0; font-size: 10pt; width: 100%; }
-      th, td { border: 1px solid #000; }
-      tbody th { position: static; }
-      thead th,
-      tr.opening th, tr.opening td,
-      tr.section-header th,
-      tr.total th, tr.total td,
-      tr.closing th, tr.closing td {
-        background: #eee !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-      }
-      .negative {
-        background: #fff !important;
-        color: #000 !important;
-        font-weight: 700;
-        text-decoration: underline;
-      }
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 10px 12px;
     }
   </style>
 </head>
 <body>
-  <div class="app">
-    <header class="app-header">
-      <h1>資金繰り表</h1>
-      <div class="meta">
-        <label>開始月：<input type="month" id="startMonth"></label>
-        <label>表示月数：
-          <select id="monthCount">
-            <option value="4">4ヶ月</option>
-            <option value="6">6ヶ月</option>
-            <option value="12">12ヶ月</option>
-          </select>
-        </label>
+  <main class="container">
+    <h1>粗利計算ツール</h1>
+    <p class="desc">売価・原価・目標粗利率から粗利を計算し、原価と目標粗利率から適正売価も逆算します。</p>
+
+    <section class="grid">
+      <div>
+        <label for="price">売価（円）</label>
+        <input id="price" type="number" min="0" step="0.01" placeholder="例：10000" />
+        <p class="hint">適正売価だけを逆算する場合は未入力でも計算できます。</p>
       </div>
-    </header>
 
-    <div class="toolbar">
-      <button id="sampleBtn">サンプルデータ入力</button>
-      <button id="clearBtn" class="danger">全クリア</button>
-      <button id="csvBtn">CSV出力</button>
-      <button id="printBtn" class="primary">印刷（A4横）</button>
+      <div>
+        <label for="cost">原価（円）</label>
+        <input id="cost" type="number" min="0" step="0.01" placeholder="例：6500" />
+      </div>
+
+      <div>
+        <label for="targetRate">目標粗利率（%）</label>
+        <input id="targetRate" type="number" min="0" max="100" step="0.01" placeholder="例：30" />
+        <p class="hint">0〜100の範囲で入力してください。</p>
+      </div>
+    </section>
+
+    <div class="buttons">
+      <button id="calcBtn" type="button">計算する</button>
+      <button id="clearBtn" type="button">クリア</button>
     </div>
 
-    <div class="add-item-form">
-      <strong>項目追加：</strong>
-      <label>名前
-        <input type="text" id="newItemLabel" placeholder="例：広告費" maxlength="20">
-      </label>
-      <label>種別
-        <select id="newItemType">
-          <option value="income">入金</option>
-          <option value="expense">支出</option>
-        </select>
-      </label>
-      <button id="addItemBtn">追加</button>
-    </div>
+    <section class="results">
+      <div class="row"><span>利益額</span><span id="profit" class="value">-</span></div>
+      <div class="row"><span>粗利率</span><span id="grossRate" class="value">-</span></div>
+      <div class="row"><span>目標粗利率を達成するための最大原価</span><span id="maxCost" class="value">-</span></div>
+      <div class="row"><span>値引き可能額（目標粗利率を維持）</span><span id="discount" class="value">-</span></div>
+      <div class="row"><span>適正売価（原価 ÷ (1 - 目標粗利率 / 100)）</span><span id="targetPrice" class="value">-</span></div>
+      <div class="row"><span>適正売価（100円単位切り上げ）</span><span id="targetPriceRounded" class="value">-</span></div>
+    </section>
 
-    <div class="table-wrap">
-      <table id="cashflow"></table>
-    </div>
+    <p id="error" class="error"></p>
 
-    <footer>
-      <p>※ 入力値はこのブラウザに自動保存されます。残高がマイナスのときは赤色で表示されます。</p>
-    </footer>
-  </div>
+    <div class="formula">
+      計算式：<br>
+      ・利益額 = 売価 - 原価<br>
+      ・粗利率 = (売価 - 原価) ÷ 売価 × 100<br>
+      ・最大原価 = 売価 × (1 - 目標粗利率)<br>
+      ・値引き可能額 = 売価 - (原価 ÷ (1 - 目標粗利率))<br>
+      ・適正売価 = 原価 ÷ (1 - 目標粗利率 ÷ 100)
+    </div>
+  </main>
 
   <script>
-    /* =========================================================
-     * 資金繰り表ツール（単一HTML / 外部ライブラリなし）
-     * - 月数（state.monthCount）を変えるだけで6ヶ月版・12ヶ月版にも拡張可能
-     * - 既定項目は DEFAULT_ITEMS、ユーザー追加項目は removable: true で保持
-     * ========================================================= */
+    const priceEl = document.getElementById('price');
+    const costEl = document.getElementById('cost');
+    const targetRateEl = document.getElementById('targetRate');
 
-    // ===== 永続化キー =====
-    const STORAGE_KEY = 'cashflow-v1';
+    const profitEl = document.getElementById('profit');
+    const grossRateEl = document.getElementById('grossRate');
+    const maxCostEl = document.getElementById('maxCost');
+    const discountEl = document.getElementById('discount');
+    const targetPriceEl = document.getElementById('targetPrice');
+    const targetPriceRoundedEl = document.getElementById('targetPriceRounded');
+    const errorEl = document.getElementById('error');
 
-    // ===== 既定の項目（削除不可） =====
-    const DEFAULT_ITEMS = [
-      // 入金
-      { key: 'sales',         label: '売上入金',     type: 'income',  removable: false },
-      { key: 'other_income',  label: 'その他入金',   type: 'income',  removable: false },
-      // 支出
-      { key: 'purchase',      label: '仕入支払',     type: 'expense', removable: false },
-      { key: 'labor',         label: '人件費',       type: 'expense', removable: false },
-      { key: 'rent',          label: '家賃',         type: 'expense', removable: false },
-      { key: 'vehicle',       label: '車両費',       type: 'expense', removable: false },
-      { key: 'loan',          label: '借入返済',     type: 'expense', removable: false },
-      { key: 'tax',           label: '税金',         type: 'expense', removable: false },
-      { key: 'other_expense', label: 'その他支出',   type: 'expense', removable: false },
-    ];
+    const calcBtn = document.getElementById('calcBtn');
+    const clearBtn = document.getElementById('clearBtn');
 
-    // ===== アプリ状態 =====
-    const state = {
-      monthCount: 4,                                  // 表示月数（4 / 6 / 12）
-      startYear: new Date().getFullYear(),
-      startMonth: new Date().getMonth() + 1,          // 1-12
-      openingBalance: 0,                              // 1ヶ月目の月初残高（以降は自動）
-      items: deepClone(DEFAULT_ITEMS),
-      values: {},                                     // values[itemKey][monthIndex] = number
-    };
-
-    // ===== ユーティリティ =====
-    function deepClone(obj) { return JSON.parse(JSON.stringify(obj)); }
-
-    function formatYen(n) {
-      if (!Number.isFinite(n)) n = 0;
-      return new Intl.NumberFormat('ja-JP').format(Math.round(n));
+    function formatYen(num) {
+      return new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY', maximumFractionDigits: 0 }).format(num);
     }
 
-    function getMonthLabel(i) {
-      // 開始年月から i ヶ月後の表示文字列
-      const m0 = state.startMonth - 1 + i;
-      const y = state.startYear + Math.floor(m0 / 12);
-      const m = (m0 % 12 + 12) % 12 + 1;
-      return `${y}年${m}月`;
+    function formatPercent(num) {
+      return `${num.toFixed(2)}%`;
     }
 
-    function getValue(key, monthIndex) {
-      return state.values[key]?.[monthIndex] ?? 0;
+    function resetOutputs() {
+      profitEl.textContent = '-';
+      grossRateEl.textContent = '-';
+      maxCostEl.textContent = '-';
+      discountEl.textContent = '-';
+      targetPriceEl.textContent = '-';
+      targetPriceRoundedEl.textContent = '-';
+      errorEl.textContent = '';
     }
 
-    function setValue(key, monthIndex, value) {
-      if (!state.values[key]) state.values[key] = {};
-      state.values[key][monthIndex] = value;
-    }
+    function calculate() {
+      resetOutputs();
 
-    function parseNumber(s) {
-      if (s === '' || s == null) return 0;
-      const n = Number(String(s).replace(/,/g, ''));
-      return Number.isFinite(n) ? n : 0;
-    }
+      const hasPrice = priceEl.value !== '';
+      const hasCost = costEl.value !== '';
+      const hasTargetRate = targetRateEl.value !== '';
+      const price = Number(priceEl.value);
+      const cost = Number(costEl.value);
+      const targetRatePercent = Number(targetRateEl.value);
 
-    function escapeHtml(s) {
-      return String(s).replace(/[&<>"']/g, c =>
-        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-    }
-
-    // ===== 集計 =====
-    // 各月の {opening, income, expense, closing} を返す
-    function computeMonthly() {
-      const result = [];
-      let prevClosing = state.openingBalance;
-      for (let m = 0; m < state.monthCount; m++) {
-        const opening = (m === 0) ? state.openingBalance : prevClosing;
-        let income = 0, expense = 0;
-        for (const item of state.items) {
-          const v = getValue(item.key, m);
-          if (item.type === 'income') income += v;
-          else expense += v;
-        }
-        const closing = opening + income - expense;
-        result.push({ opening, income, expense, closing });
-        prevClosing = closing;
-      }
-      return result;
-    }
-
-    // ===== 描画 =====
-    function render() {
-      const table = document.getElementById('cashflow');
-      const totals = computeMonthly();
-
-      // ヘッダ行
-      let html = '<thead><tr><th>項目</th>';
-      for (let m = 0; m < state.monthCount; m++) {
-        html += `<th>${getMonthLabel(m)}</th>`;
-      }
-      html += '</tr></thead><tbody>';
-
-      // 月初残高行（先頭月のみ入力、以降は自動反映）
-      html += '<tr class="opening"><th>月初残高</th>';
-      for (let m = 0; m < state.monthCount; m++) {
-        if (m === 0) {
-          html += `<td><input type="number" inputmode="numeric" data-role="opening" value="${state.openingBalance || ''}" placeholder="0"></td>`;
-        } else {
-          const v = totals[m].opening;
-          const cls = v < 0 ? 'derived negative' : 'derived';
-          html += `<td class="${cls}" data-derived="opening" data-month="${m}">${formatYen(v)}</td>`;
-        }
-      }
-      html += '</tr>';
-
-      // 入金セクション
-      html += `<tr class="section-header"><th colspan="${state.monthCount + 1}">入金</th></tr>`;
-      for (const item of state.items.filter(i => i.type === 'income')) {
-        html += renderItemRow(item);
-      }
-      // 入金合計行
-      html += '<tr class="total"><th>入金合計</th>';
-      for (let m = 0; m < state.monthCount; m++) {
-        html += `<td class="derived" data-derived="income" data-month="${m}">${formatYen(totals[m].income)}</td>`;
-      }
-      html += '</tr>';
-
-      // 支出セクション
-      html += `<tr class="section-header"><th colspan="${state.monthCount + 1}">支出</th></tr>`;
-      for (const item of state.items.filter(i => i.type === 'expense')) {
-        html += renderItemRow(item);
-      }
-      // 支出合計行
-      html += '<tr class="total"><th>支出合計</th>';
-      for (let m = 0; m < state.monthCount; m++) {
-        html += `<td class="derived" data-derived="expense" data-month="${m}">${formatYen(totals[m].expense)}</td>`;
-      }
-      html += '</tr>';
-
-      // 月末残高行（マイナス時は赤）
-      html += '<tr class="closing"><th>月末残高</th>';
-      for (let m = 0; m < state.monthCount; m++) {
-        const v = totals[m].closing;
-        const cls = v < 0 ? 'derived negative' : 'derived';
-        html += `<td class="${cls}" data-derived="closing" data-month="${m}">${formatYen(v)}</td>`;
-      }
-      html += '</tr>';
-
-      html += '</tbody>';
-      table.innerHTML = html;
-
-      attachInputListeners();
-    }
-
-    // 項目1行分のHTMLを返す
-    function renderItemRow(item) {
-      const removeHtml = item.removable
-        ? `<button class="remove-btn" title="この項目を削除" data-remove="${item.key}">×</button>`
-        : '';
-      let row = `<tr><th><span class="item-label"><span>${escapeHtml(item.label)}</span>${removeHtml}</span></th>`;
-      for (let m = 0; m < state.monthCount; m++) {
-        const v = getValue(item.key, m);
-        row += `<td><input type="number" inputmode="numeric" data-key="${item.key}" data-month="${m}" value="${v || ''}" placeholder="0"></td>`;
-      }
-      row += '</tr>';
-      return row;
-    }
-
-    // ===== 入力ハンドラ =====
-    function attachInputListeners() {
-      const table = document.getElementById('cashflow');
-
-      // 月初残高（1ヶ月目のみ）
-      const openingInput = table.querySelector('input[data-role="opening"]');
-      if (openingInput) {
-        openingInput.addEventListener('input', e => {
-          state.openingBalance = parseNumber(e.target.value);
-          updateDerivedCells();
-          save();
-        });
-      }
-
-      // 各項目
-      table.querySelectorAll('input[data-key]').forEach(input => {
-        input.addEventListener('input', e => {
-          const key = e.target.dataset.key;
-          const m = Number(e.target.dataset.month);
-          setValue(key, m, parseNumber(e.target.value));
-          updateDerivedCells();
-          save();
-        });
-      });
-
-      // 削除ボタン
-      table.querySelectorAll('button[data-remove]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const key = btn.dataset.remove;
-          const target = state.items.find(i => i.key === key);
-          if (!target) return;
-          if (!confirm(`項目「${target.label}」を削除します。よろしいですか？`)) return;
-          state.items = state.items.filter(i => i.key !== key);
-          delete state.values[key];
-          save();
-          render();
-        });
-      });
-    }
-
-    // 入力中の再描画はフォーカスを失うため、計算結果セルだけを更新する
-    function updateDerivedCells() {
-      const totals = computeMonthly();
-      const table = document.getElementById('cashflow');
-
-      for (let m = 0; m < state.monthCount; m++) {
-        // 月初残高（2ヶ月目以降）
-        if (m > 0) {
-          const cell = table.querySelector(`td[data-derived="opening"][data-month="${m}"]`);
-          if (cell) {
-            cell.textContent = formatYen(totals[m].opening);
-            cell.classList.toggle('negative', totals[m].opening < 0);
-          }
-        }
-        // 入金合計
-        const inc = table.querySelector(`td[data-derived="income"][data-month="${m}"]`);
-        if (inc) inc.textContent = formatYen(totals[m].income);
-        // 支出合計
-        const exp = table.querySelector(`td[data-derived="expense"][data-month="${m}"]`);
-        if (exp) exp.textContent = formatYen(totals[m].expense);
-        // 月末残高
-        const cls = table.querySelector(`td[data-derived="closing"][data-month="${m}"]`);
-        if (cls) {
-          cls.textContent = formatYen(totals[m].closing);
-          cls.classList.toggle('negative', totals[m].closing < 0);
-        }
-      }
-    }
-
-    // ===== ツールバー操作 =====
-    function addItem() {
-      const labelInput = document.getElementById('newItemLabel');
-      const typeSelect = document.getElementById('newItemType');
-      const label = labelInput.value.trim();
-      if (!label) {
-        alert('項目名を入力してください。');
-        labelInput.focus();
+      if (!hasCost || !hasTargetRate) {
+        errorEl.textContent = '原価と目標粗利率を入力してください。売価は任意です。';
         return;
       }
-      const key = 'custom_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
-      state.items.push({ key, label, type: typeSelect.value, removable: true });
-      labelInput.value = '';
-      save();
-      render();
-    }
-
-    // 4ヶ月分のサンプル数値（5ヶ月目以降は0）
-    function loadSample() {
-      state.openingBalance = 1500000;
-      const sample = {
-        sales:         [2800000, 3100000, 2700000, 3300000],
-        other_income:  [  50000,       0,  100000,       0],
-        purchase:      [1200000, 1350000, 1180000, 1450000],
-        labor:         [ 800000,  800000,  850000,  850000],
-        rent:          [ 180000,  180000,  180000,  180000],
-        vehicle:       [  40000,   35000,   60000,   30000],
-        loan:          [ 120000,  120000,  120000,  120000],
-        tax:           [      0,       0,  250000,       0],
-        other_expense: [  80000,   90000,   70000,  100000],
-      };
-      state.values = {};
-      for (const key in sample) {
-        state.values[key] = {};
-        sample[key].forEach((v, i) => {
-          if (i < state.monthCount) state.values[key][i] = v;
-        });
+      if (!Number.isFinite(cost) || !Number.isFinite(targetRatePercent) || (hasPrice && !Number.isFinite(price))) {
+        errorEl.textContent = '入力値を確認してください。';
+        return;
       }
-      save();
-      render();
-    }
-
-    function clearAll() {
-      if (!confirm('入力値・追加項目を全てクリアします。よろしいですか？')) return;
-      state.openingBalance = 0;
-      state.values = {};
-      state.items = deepClone(DEFAULT_ITEMS);
-      save();
-      render();
-    }
-
-    function exportCsv() {
-      const totals = computeMonthly();
-      const rows = [];
-
-      // ヘッダ
-      const header = ['項目'];
-      for (let m = 0; m < state.monthCount; m++) header.push(getMonthLabel(m));
-      rows.push(header);
-
-      // 月初残高
-      const openingRow = ['月初残高'];
-      for (let m = 0; m < state.monthCount; m++) openingRow.push(totals[m].opening);
-      rows.push(openingRow);
-
-      // 入金
-      rows.push(['＜入金＞']);
-      for (const item of state.items.filter(i => i.type === 'income')) {
-        const r = [item.label];
-        for (let m = 0; m < state.monthCount; m++) r.push(getValue(item.key, m));
-        rows.push(r);
+      if (cost < 0) {
+        errorEl.textContent = '原価は0以上の値を入力してください。';
+        return;
       }
-      const incomeRow = ['入金合計'];
-      for (let m = 0; m < state.monthCount; m++) incomeRow.push(totals[m].income);
-      rows.push(incomeRow);
-
-      // 支出
-      rows.push(['＜支出＞']);
-      for (const item of state.items.filter(i => i.type === 'expense')) {
-        const r = [item.label];
-        for (let m = 0; m < state.monthCount; m++) r.push(getValue(item.key, m));
-        rows.push(r);
+      if (targetRatePercent < 0 || targetRatePercent >= 100) {
+        errorEl.textContent = '目標粗利率は0以上100未満で入力してください。';
+        return;
       }
-      const expenseRow = ['支出合計'];
-      for (let m = 0; m < state.monthCount; m++) expenseRow.push(totals[m].expense);
-      rows.push(expenseRow);
+      if (hasPrice && price <= 0) {
+        errorEl.textContent = '売価を入力する場合は0より大きい値にしてください。';
+        return;
+      }
 
-      // 月末残高
-      const closingRow = ['月末残高'];
-      for (let m = 0; m < state.monthCount; m++) closingRow.push(totals[m].closing);
-      rows.push(closingRow);
+      const targetRate = targetRatePercent / 100;
+      const targetPrice = cost / (1 - targetRate);
+      const targetPriceRounded = Math.ceil(targetPrice / 100) * 100;
 
-      const csv = rows.map(r => r.map(csvEscape).join(',')).join('\r\n');
-      // ExcelでもUTF-8として開けるようBOM付与
-      const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `cashflow_${state.startYear}-${String(state.startMonth).padStart(2, '0')}_${state.monthCount}m.csv`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      targetPriceEl.textContent = formatYen(targetPrice);
+      targetPriceRoundedEl.textContent = formatYen(targetPriceRounded);
+
+      if (hasPrice) {
+        const profit = price - cost;
+        const grossRate = (profit / price) * 100;
+        const maxCost = price * (1 - targetRate);
+        const discount = price - targetPrice;
+
+        profitEl.textContent = formatYen(profit);
+        grossRateEl.textContent = formatPercent(grossRate);
+        maxCostEl.textContent = formatYen(maxCost);
+        discountEl.textContent = formatYen(Math.max(0, discount));
+
+        if (discount < 0) {
+          errorEl.textContent = '現在の売価では目標粗利率を満たせません（値引き余地なし）。';
+        }
+      }
     }
 
-    function csvEscape(v) {
-      const s = String(v ?? '');
-      if (/[",\r\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
-      return s;
-    }
+    calcBtn.addEventListener('click', calculate);
 
-    // ===== 永続化 =====
-    function save() {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({
-          monthCount: state.monthCount,
-          startYear: state.startYear,
-          startMonth: state.startMonth,
-          openingBalance: state.openingBalance,
-          items: state.items,
-          values: state.values,
-        }));
-      } catch (e) { /* localStorage不可の環境では無視 */ }
-    }
+    clearBtn.addEventListener('click', () => {
+      priceEl.value = '';
+      costEl.value = '';
+      targetRateEl.value = '';
+      resetOutputs();
+    });
 
-    function load() {
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return;
-        const data = JSON.parse(raw);
-        if (Number.isFinite(data.monthCount)) state.monthCount = data.monthCount;
-        if (Number.isFinite(data.startYear)) state.startYear = data.startYear;
-        if (Number.isFinite(data.startMonth)) state.startMonth = data.startMonth;
-        if (Number.isFinite(data.openingBalance)) state.openingBalance = data.openingBalance;
-        if (Array.isArray(data.items) && data.items.length > 0) state.items = data.items;
-        if (data.values && typeof data.values === 'object') state.values = data.values;
-      } catch (e) { /* 不正データは初期値を使用 */ }
-    }
-
-    // ===== 初期化 =====
-    function init() {
-      load();
-
-      // 開始月セレクタ
-      const startMonthEl = document.getElementById('startMonth');
-      startMonthEl.value = `${state.startYear}-${String(state.startMonth).padStart(2, '0')}`;
-      startMonthEl.addEventListener('change', e => {
-        const v = e.target.value; // "YYYY-MM"
-        if (!v) return;
-        const [y, m] = v.split('-').map(Number);
-        state.startYear = y;
-        state.startMonth = m;
-        save();
-        render();
+    [priceEl, costEl, targetRateEl].forEach(el => {
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') calculate();
       });
+    });
 
-      // 月数セレクタ（4 / 6 / 12 へ拡張可能）
-      const monthCountEl = document.getElementById('monthCount');
-      monthCountEl.value = String(state.monthCount);
-      monthCountEl.addEventListener('change', e => {
-        state.monthCount = Number(e.target.value);
-        save();
-        render();
-      });
-
-      // ツールバー
-      document.getElementById('sampleBtn').addEventListener('click', loadSample);
-      document.getElementById('clearBtn').addEventListener('click', clearAll);
-      document.getElementById('csvBtn').addEventListener('click', exportCsv);
-      document.getElementById('printBtn').addEventListener('click', () => window.print());
-
-      // 項目追加
-      document.getElementById('addItemBtn').addEventListener('click', addItem);
-      document.getElementById('newItemLabel').addEventListener('keydown', e => {
-        if (e.key === 'Enter') addItem();
-      });
-
-      render();
-    }
-
-    init();
+    resetOutputs();
   </script>
 </body>
 </html>
