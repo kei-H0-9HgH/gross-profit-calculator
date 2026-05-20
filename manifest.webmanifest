@@ -1,6 +1,6 @@
 {
   "name": "粗利計算ツール",
-  "short_name": "粗利計算",
+  "short_name": "粗利計算ツール",
   "description": "売価・原価・目標粗利率から粗利を計算するツール",
   "start_url": "./",
   "scope": "./",
@@ -9,6 +9,12 @@
   "theme_color": "#2563eb",
   "lang": "ja",
   "icons": [
+    {
+      "src": "icon-180.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
     {
       "src": "icon.svg",
       "sizes": "any",

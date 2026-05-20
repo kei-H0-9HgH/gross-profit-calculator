@@ -1,0 +1,441 @@
+:root {
+  --bg: #f4f6f8;
+  --card: #ffffff;
+  --text: #111827;
+  --muted: #6b7280;
+  --primary: #1d4ed8;
+  --primary-dark: #1e40af;
+  --border: #d8dee6;
+  --border-soft: #edf0f4;
+  --blue: #2563eb;
+  --blue-soft: #eff6ff;
+  --green: #047857;
+  --green-soft: #ecfdf5;
+  --orange: #c2410c;
+  --orange-soft: #fff7ed;
+  --ok: #047857;
+  --ng: #dc2626;
+  --soft: #f8fafc;
+  font-family: "Yu Gothic UI", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.5;
+  padding: calc(10px + env(safe-area-inset-top)) 10px calc(24px + env(safe-area-inset-bottom));
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.container {
+  width: min(100%, 560px);
+  margin: 0 auto;
+  display: grid;
+  gap: 9px;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 15px;
+}
+
+h1 {
+  margin: 0 0 4px;
+  font-size: 1.35rem;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
+}
+
+.desc {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.grid,
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+@media (min-width: 520px) {
+  .grid-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+input[type="text"],
+input.input-number {
+  width: 100%;
+  min-height: 52px;
+  padding: 13px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  font-size: 16px;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.12);
+}
+
+.hint {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.btn-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+button {
+  min-height: 52px;
+  border: none;
+  border-radius: 8px;
+  padding: 13px 16px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+  font-weight: 800;
+}
+
+.btn-primary:hover {
+  background: var(--primary-dark);
+}
+
+.btn-primary:active {
+  opacity: 0.86;
+}
+
+.btn-ghost {
+  background: #e5e7eb;
+  color: #374151;
+  font-weight: 700;
+}
+
+.btn-copy {
+  width: 100%;
+  margin-top: 12px;
+  background: #f0fdf4;
+  color: #047857;
+  border: 1.5px solid #bbf7d0;
+  font-weight: 800;
+}
+
+.btn-csv {
+  min-height: 40px;
+  background: #eff6ff;
+  color: var(--primary);
+  border: 1.5px solid #bfdbfe;
+  font-weight: 800;
+  font-size: 0.88rem;
+  padding: 8px 12px;
+}
+
+.section-label {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: baseline;
+  gap: 7px;
+  margin-top: 5px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.row:last-of-type {
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.row-label {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.value {
+  color: var(--ok);
+  font-size: 1.08rem;
+  font-weight: 800;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.value.ng {
+  color: var(--ng);
+}
+
+section[aria-label="計算結果"] .row:first-of-type {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 6px;
+  padding: 9px 12px;
+  border-color: #86efac;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #f0fdf4 0%, #dcfce7 100%);
+}
+
+section[aria-label="計算結果"] .row:first-of-type .row-label {
+  color: #166534;
+  font-weight: 800;
+}
+
+section[aria-label="計算結果"] .row:first-of-type .value {
+  font-size: clamp(2.15rem, 11.5vw, 3.45rem);
+  font-weight: 900;
+  line-height: 0.94;
+  text-align: right;
+  white-space: normal;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+}
+
+section[aria-label="計算結果"] .row:nth-of-type(2) {
+  border-color: #bfdbfe;
+  background: var(--blue-soft);
+  padding: 11px 12px;
+}
+
+section[aria-label="計算結果"] .row:nth-of-type(2) .row-label,
+section[aria-label="計算結果"] .row:nth-of-type(2) .value {
+  color: var(--blue);
+}
+
+section[aria-label="計算結果"] .row:nth-of-type(2) .row-label {
+  font-weight: 800;
+}
+
+section[aria-label="計算結果"] .row:nth-of-type(2) .value {
+  font-size: 1.42rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+section[aria-label="計算結果"] .row:nth-of-type(3),
+section[aria-label="計算結果"] .row:nth-of-type(4) {
+  border-color: #bbf7d0;
+  background: var(--green-soft);
+}
+
+section[aria-label="計算結果"] .row:nth-of-type(3) .row-label,
+section[aria-label="計算結果"] .row:nth-of-type(3) .value,
+section[aria-label="計算結果"] .row:nth-of-type(4) .row-label,
+section[aria-label="計算結果"] .row:nth-of-type(4) .value {
+  color: var(--green);
+}
+
+section[aria-label="計算結果"] .row:nth-of-type(6) {
+  border-color: #fed7aa;
+  background: var(--orange-soft);
+}
+
+section[aria-label="計算結果"] .row:nth-of-type(6) .row-label,
+section[aria-label="計算結果"] .row:nth-of-type(6) .value {
+  color: var(--orange);
+}
+
+.error {
+  min-height: 1em;
+  margin: 8px 0 0;
+  color: var(--ng);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+details summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+  user-select: none;
+}
+
+details[open] summary {
+  margin-bottom: 10px;
+}
+
+.formula {
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.9;
+}
+
+.history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.history-header .section-label {
+  margin: 0;
+}
+
+.history-empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  text-align: center;
+  padding: 12px 0;
+}
+
+.hist-item {
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 8px;
+  background: #fff;
+}
+
+.hist-item:last-child {
+  margin-bottom: 0;
+}
+
+.hist-name {
+  margin-bottom: 4px;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.hist-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 10px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.hist-highlight {
+  color: var(--ok);
+  font-weight: 800;
+}
+
+.hist-time {
+  margin-top: 4px;
+  color: #9ca3af;
+  font-size: 0.74rem;
+}
+
+.toast {
+  position: fixed;
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  left: 50%;
+  z-index: 999;
+  transform: translateX(-50%) translateY(60px);
+  border-radius: 24px;
+  background: #1f2937;
+  color: #fff;
+  padding: 9px 18px;
+  opacity: 0;
+  pointer-events: none;
+  white-space: nowrap;
+  transition: transform 0.22s ease, opacity 0.22s ease;
+}
+
+.toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+@media (max-width: 380px) {
+  body {
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+
+  .card {
+    padding: 13px;
+  }
+
+  .row {
+    grid-template-columns: 1fr;
+    gap: 3px;
+    padding: 9px 10px;
+  }
+
+  .value {
+    text-align: left;
+    white-space: normal;
+  }
+
+  section[aria-label="計算結果"] .row:first-of-type {
+    grid-template-columns: auto 1fr;
+    gap: 8px;
+    padding: 8px 10px;
+  }
+
+  section[aria-label="計算結果"] .row:first-of-type .value {
+    font-size: clamp(1.95rem, 10.5vw, 2.8rem);
+    text-align: right;
+  }
+
+  .btn-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media print {
+  body {
+    background: #fff;
+    padding: 0;
+  }
+
+  .btn-row,
+  .btn-copy,
+  .btn-csv,
+  #historySection,
+  details {
+    display: none;
+  }
+
+  .card {
+    box-shadow: none;
+  }
+}
