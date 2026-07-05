@@ -1,0 +1,534 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="iPhone Safariで使いやすい粗利計算ツール">
+  <title>粗利計算ツール</title>
+
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+  <link rel="stylesheet" href="style.css?v=20260520-1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="粗利計算ツール">
+</head>
+<body>
+  <main class="container">
+    <section class="card">
+      <h1>粗利計算ツール</h1>
+      <p class="desc">売価・原価・目標粗利率を入力して、利益額・適正売価・値引き可能額を計算します。</p>
+    </section>
+
+    <section class="card" aria-label="入力">
+      <div class="grid">
+        <div>
+          <label for="itemName">商品名（任意）</label>
+          <input id="itemName" type="text" placeholder="例：商品A" autocomplete="off">
+        </div>
+      </div>
+
+      <div class="grid grid-2">
+        <div>
+          <label for="price">売価（円）</label>
+          <input id="price" class="input-number" type="text" placeholder="例：10000" inputmode="decimal" autocomplete="off">
+          <p class="hint">適正売価だけ逆算する場合は未入力でも計算できます。</p>
+        </div>
+        <div>
+          <label for="cost">原価（円）</label>
+          <input id="cost" class="input-number" type="text" placeholder="例：6500" inputmode="decimal" autocomplete="off">
+        </div>
+      </div>
+
+      <div class="grid grid-2">
+        <div>
+          <label for="productType">商品区分</label>
+          <select id="productType">
+            <option value="standard" data-rate="25">標準（25%）</option>
+            <option value="drum" data-rate="25">ドラム（25%）</option>
+            <option value="pail" data-rate="35">ペール（35%）</option>
+            <option value="large" data-rate="20">大口（20%）</option>
+            <option value="general" data-rate="30">一般（30%）</option>
+            <option value="tight" data-rate="40">逼迫時（40%）</option>
+          </select>
+        </div>
+        <div>
+          <label for="targetRate">目標粗利率（%）</label>
+          <input id="targetRate" class="input-number" type="text" value="25" placeholder="例：25" inputmode="decimal" autocomplete="off">
+          <p class="hint">0以上100未満で入力してください。</p>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div>
+          <label for="roundingUnit">丸め単位</label>
+          <select id="roundingUnit">
+            <option value="0">なし</option>
+            <option value="100" selected>100円切り上げ</option>
+            <option value="500">500円切り上げ</option>
+            <option value="1000">1,000円切り上げ</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button id="calcBtn" class="btn-primary" type="button">計算する</button>
+        <button id="clearBtn" class="btn-ghost" type="button">クリア</button>
+      </div>
+    </section>
+
+    <section class="card" aria-label="計算結果">
+      <p class="section-label">計算結果</p>
+      <div class="row"><span class="row-label">利益額</span><span id="profit" class="value">-</span></div>
+      <div class="row"><span class="row-label">粗利率</span><span id="grossRate" class="value">-</span></div>
+      <div class="row"><span class="row-label">適正売価（原価から逆算）</span><span id="minSellPrice" class="value">-</span></div>
+      <div class="row"><span id="roundedSellPriceLabel" class="row-label">適正売価（100円切り上げ）</span><span id="roundedSellPrice" class="value">-</span></div>
+      <div class="row"><span class="row-label">目標達成の最大原価</span><span id="maxCost" class="value">-</span></div>
+      <div class="row"><span class="row-label">値引き可能額</span><span id="discount" class="value">-</span></div>
+      <p id="grossAlert" class="gross-alert status-neutral">売価入力で粗利判定します。</p>
+      <p id="error" class="error"></p>
+      <button id="copyBtn" class="btn-copy" type="button">結果をコピー</button>
+    </section>
+
+    <section class="card">
+      <details>
+        <summary>計算式を見る</summary>
+        <div class="formula">
+          ・利益額 = 売価 - 原価<br>
+          ・粗利率 = (売価 - 原価) ÷ 売価 × 100<br>
+          ・適正売価 = 原価 ÷ (1 - 目標粗利率)<br>
+          ・最大原価 = 売価 × (1 - 目標粗利率)<br>
+          ・値引き可能額 = 売価 - 適正売価
+        </div>
+      </details>
+    </section>
+
+    <section class="card" id="historySection" aria-label="計算履歴">
+      <div class="history-header">
+        <p class="section-label">計算履歴（直近10件）</p>
+        <button id="csvBtn" class="btn-csv" type="button">CSV</button>
+      </div>
+      <div id="historyList">
+        <p class="history-empty">まだ履歴がありません</p>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const HISTORY_KEY = 'grossCalcHistory';
+    const DRAFT_KEY = 'grossCalcDraft';
+    const MAX_HISTORY = 10;
+    const DEFAULT_TARGET_RATE = '25';
+    const DEFAULT_ROUNDING_UNIT = '100';
+    const DEFAULT_PRODUCT_TYPE = 'standard';
+
+    const priceEl = document.getElementById('price');
+    const costEl = document.getElementById('cost');
+    const targetRateEl = document.getElementById('targetRate');
+    const productTypeEl = document.getElementById('productType');
+    const roundingUnitEl = document.getElementById('roundingUnit');
+    const itemNameEl = document.getElementById('itemName');
+
+    const profitEl = document.getElementById('profit');
+    const grossRateEl = document.getElementById('grossRate');
+    const minSellPriceEl = document.getElementById('minSellPrice');
+    const roundedSellPriceLabelEl = document.getElementById('roundedSellPriceLabel');
+    const roundedSellPriceEl = document.getElementById('roundedSellPrice');
+    const maxCostEl = document.getElementById('maxCost');
+    const discountEl = document.getElementById('discount');
+    const grossAlertEl = document.getElementById('grossAlert');
+    const errorEl = document.getElementById('error');
+
+    let lastResult = null;
+
+    function yen(n) {
+      return new Intl.NumberFormat('ja-JP', {
+        style: 'currency',
+        currency: 'JPY',
+        maximumFractionDigits: 0
+      }).format(Number.isFinite(n) ? n : 0);
+    }
+
+    function pct(n) {
+      return `${n.toFixed(2)}%`;
+    }
+
+    function dateStr(ts) {
+      const d = new Date(ts);
+      const p = (n) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+    }
+
+    function escHtml(s) {
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function resetOutputs() {
+      [profitEl, grossRateEl, minSellPriceEl, roundedSellPriceEl, maxCostEl, discountEl].forEach((el) => {
+        el.textContent = '-';
+        el.className = 'value';
+      });
+      grossAlertEl.textContent = '売価入力で粗利判定します。';
+      grossAlertEl.className = 'gross-alert status-neutral';
+      errorEl.textContent = '';
+      lastResult = null;
+    }
+
+    function roundingLabel(unit) {
+      const n = Number(unit);
+      return n > 0 ? `${n.toLocaleString('ja-JP')}円切り上げ` : '丸めなし';
+    }
+
+    function roundUpPrice(value, unit) {
+      const n = Number(unit);
+      return n > 0 ? Math.ceil(value / n) * n : value;
+    }
+
+    function updateRoundingLabel() {
+      roundedSellPriceLabelEl.textContent = `適正売価（${roundingLabel(roundingUnitEl.value)}）`;
+    }
+
+    function selectedProductRate() {
+      return productTypeEl.selectedOptions[0]?.dataset.rate || DEFAULT_TARGET_RATE;
+    }
+
+    function hasProductType(value) {
+      return Array.from(productTypeEl.options).some((opt) => opt.value === value);
+    }
+
+    function setGrossAlert(grossRate, targetPct) {
+      let message = '問題なし';
+      let status = 'status-ok';
+      if (grossRate < 0) {
+        message = '赤字です。売価見直し';
+        status = 'status-danger';
+      } else if (grossRate < 15) {
+        message = '低粗利です。要注意';
+        status = 'status-warning';
+      } else if (grossRate < targetPct) {
+        message = '目標未達です。再確認';
+        status = 'status-warning';
+      }
+      grossAlertEl.textContent = message;
+      grossAlertEl.className = `gross-alert ${status}`;
+    }
+
+    function calculate() {
+      errorEl.textContent = '';
+      const hasPrice = priceEl.value !== '';
+      const hasCost = costEl.value !== '';
+      const hasTargetRate = targetRateEl.value !== '';
+      const roundingUnit = roundingUnitEl.value || DEFAULT_ROUNDING_UNIT;
+
+      if (!hasCost || !hasTargetRate) {
+        resetOutputs();
+        errorEl.textContent = '原価と目標粗利率を入力してください。売価は任意です。';
+        return;
+      }
+
+      const price = parseFloat(priceEl.value);
+      const cost = parseFloat(costEl.value);
+      const targetPct = parseFloat(targetRateEl.value);
+
+      if (!Number.isFinite(cost) || !Number.isFinite(targetPct) || (hasPrice && !Number.isFinite(price))) {
+        resetOutputs();
+        errorEl.textContent = '数値を正しく入力してください。';
+        return;
+      }
+      if (cost < 0) {
+        resetOutputs();
+        errorEl.textContent = '原価は0以上の値を入力してください。';
+        return;
+      }
+      if (targetPct < 0 || targetPct >= 100) {
+        resetOutputs();
+        errorEl.textContent = '目標粗利率は0以上100未満で入力してください。';
+        return;
+      }
+      if (hasPrice && price <= 0) {
+        resetOutputs();
+        errorEl.textContent = '売価を入力する場合は0より大きい値にしてください。';
+        return;
+      }
+
+      const rate = targetPct / 100;
+      const minSellPrice = cost / (1 - rate);
+      const roundedSellPrice = roundUpPrice(minSellPrice, roundingUnit);
+      updateRoundingLabel();
+      minSellPriceEl.textContent = yen(minSellPrice);
+      roundedSellPriceEl.textContent = yen(roundedSellPrice);
+
+      let result = {
+        name: itemNameEl.value.trim() || '-',
+        price: hasPrice ? price : null,
+        cost,
+        targetPct,
+        productType: productTypeEl.value || DEFAULT_PRODUCT_TYPE,
+        roundingUnit,
+        profit: null,
+        grossRate: null,
+        minSellPrice,
+        roundedSellPrice,
+        maxCost: null,
+        discount: null,
+        ts: Date.now()
+      };
+
+      if (hasPrice) {
+        const profit = price - cost;
+        const grossRate = (profit / price) * 100;
+        const maxCost = price * (1 - rate);
+        const discount = price - minSellPrice;
+        setValue(profitEl, yen(profit), profit < 0);
+        setValue(grossRateEl, pct(grossRate), grossRate < targetPct);
+        setValue(maxCostEl, yen(maxCost), false);
+        setValue(discountEl, yen(Math.max(0, discount)), discount < 0);
+        setGrossAlert(grossRate, targetPct);
+        if (discount < 0) {
+          errorEl.textContent = '現在の売価では目標粗利率を満たせません（値引き余地なし）。';
+        }
+        result = { ...result, profit, grossRate, maxCost, discount: Math.max(0, discount) };
+      } else {
+        grossAlertEl.textContent = '売価入力で粗利判定します。';
+        grossAlertEl.className = 'gross-alert status-neutral';
+      }
+
+      lastResult = result;
+      addToHistory(result);
+      renderHistory();
+      saveDraft();
+    }
+
+    function setValue(el, value, isNg) {
+      el.textContent = value;
+      el.className = `value${isNg ? ' ng' : ''}`;
+    }
+
+    function loadHistory() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function addToHistory(entry) {
+      const h = loadHistory();
+      const next = h.filter((item) => !isSameHistory(item, entry));
+      next.unshift(entry);
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(next.slice(0, MAX_HISTORY)));
+    }
+
+    function normalizedHistoryValue(value) {
+      if (value === null || value === undefined || value === '') return '';
+      const n = Number(value);
+      return Number.isFinite(n) ? String(n) : String(value);
+    }
+
+    function historyProductType(item) {
+      return hasProductType(item.productType) ? item.productType : DEFAULT_PRODUCT_TYPE;
+    }
+
+    function historyRoundingUnit(item) {
+      return item.roundingUnit === undefined || item.roundingUnit === null || item.roundingUnit === ''
+        ? DEFAULT_ROUNDING_UNIT
+        : String(item.roundingUnit);
+    }
+
+    function isSameHistory(a, b) {
+      return normalizedHistoryValue(a.price) === normalizedHistoryValue(b.price)
+        && normalizedHistoryValue(a.cost) === normalizedHistoryValue(b.cost)
+        && normalizedHistoryValue(a.targetPct) === normalizedHistoryValue(b.targetPct)
+        && historyProductType(a) === historyProductType(b)
+        && historyRoundingUnit(a) === historyRoundingUnit(b);
+    }
+
+    function renderHistory() {
+      const h = loadHistory();
+      const el = document.getElementById('historyList');
+      if (!h.length) {
+        el.innerHTML = '<p class="history-empty">まだ履歴がありません</p>';
+        return;
+      }
+      el.innerHTML = h.map((r) => `
+        <div class="hist-item">
+          <div class="hist-name">${escHtml(r.name || '-')}</div>
+          <div class="hist-meta">
+            ${r.price === null || r.price === undefined ? '' : `<span>売価 ${yen(r.price)}</span>`}
+            <span>原価 ${yen(r.cost)}</span>
+            <span>目標 ${pct(Number(r.targetPct || 0))}</span>
+            ${r.grossRate === null || r.grossRate === undefined ? '' : `<span>粗利率 <span class="hist-highlight">${pct(r.grossRate)}</span></span>`}
+            <span>適正売価 <span class="hist-highlight">${yen(r.minSellPrice)}</span></span>
+          </div>
+          <div class="hist-time">${dateStr(r.ts || Date.now())}</div>
+        </div>
+      `).join('');
+    }
+
+    function saveDraft() {
+      try {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({
+          name: itemNameEl.value,
+          price: priceEl.value,
+          cost: costEl.value,
+          targetRate: targetRateEl.value || DEFAULT_TARGET_RATE,
+          productType: productTypeEl.value || DEFAULT_PRODUCT_TYPE,
+          roundingUnit: roundingUnitEl.value || DEFAULT_ROUNDING_UNIT
+        }));
+      } catch {
+        // localStorageが使えない場合も計算は継続する。
+      }
+    }
+
+    function restoreDraft() {
+      try {
+        const draft = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null');
+        if (!draft) return;
+        itemNameEl.value = draft.name || '';
+        priceEl.value = draft.price || '';
+        costEl.value = draft.cost || '';
+        targetRateEl.value = draft.targetRate || DEFAULT_TARGET_RATE;
+        productTypeEl.value = hasProductType(draft.productType) ? draft.productType : DEFAULT_PRODUCT_TYPE;
+        roundingUnitEl.value = draft.roundingUnit || DEFAULT_ROUNDING_UNIT;
+      } catch {
+        // 不正な下書きは無視する。
+      }
+      if (!targetRateEl.value) targetRateEl.value = DEFAULT_TARGET_RATE;
+      updateRoundingLabel();
+    }
+
+    function buildResultText(r) {
+      return [
+        r.name !== '-' ? `商品名：${r.name}` : null,
+        r.price === null || r.price === undefined ? null : `売価：${yen(r.price)}`,
+        `原価：${yen(r.cost)}`,
+        `目標粗利率：${pct(r.targetPct)}`,
+        '────────────────',
+        r.profit === null || r.profit === undefined ? null : `利益額：${yen(r.profit)}`,
+        r.grossRate === null || r.grossRate === undefined ? null : `粗利率：${pct(r.grossRate)}`,
+        `適正売価：${yen(r.minSellPrice)}`,
+        `適正売価（${roundingLabel(r.roundingUnit || DEFAULT_ROUNDING_UNIT)}）：${yen(r.roundedSellPrice)}`,
+        r.maxCost === null || r.maxCost === undefined ? null : `最大原価：${yen(r.maxCost)}`,
+        r.discount === null || r.discount === undefined ? null : `値引き可能額：${yen(r.discount)}`
+      ].filter(Boolean).join('\n');
+    }
+
+    document.getElementById('copyBtn').addEventListener('click', () => {
+      if (!lastResult) {
+        showToast('先に計算してください');
+        return;
+      }
+      const text = buildResultText(lastResult);
+      if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(text).then(() => showToast('コピーしました')).catch(() => fallbackCopy(text));
+      } else {
+        fallbackCopy(text);
+      }
+    });
+
+    function fallbackCopy(text) {
+      const area = document.createElement('textarea');
+      area.value = text;
+      area.style.position = 'fixed';
+      area.style.left = '-9999px';
+      document.body.appendChild(area);
+      area.focus();
+      area.select();
+      try {
+        document.execCommand('copy');
+        showToast('コピーしました');
+      } catch {
+        showToast('コピーに失敗しました');
+      }
+      area.remove();
+    }
+
+    document.getElementById('csvBtn').addEventListener('click', () => {
+      const h = loadHistory();
+      if (!h.length) {
+        showToast('履歴がありません');
+        return;
+      }
+      const header = '商品名,売価,原価,目標粗利率(%),粗利率(%),利益額,適正売価,適正売価100円単位,最大原価,値引き可能額,計算日時';
+      const rows = h.map((r) => [
+        `"${String(r.name || '-').replace(/"/g, '""')}"`,
+        r.price ?? '',
+        r.cost ?? '',
+        r.targetPct ?? '',
+        r.grossRate === null || r.grossRate === undefined ? '' : r.grossRate.toFixed(2),
+        r.profit === null || r.profit === undefined ? '' : Math.round(r.profit),
+        Math.round(r.minSellPrice || 0),
+        Math.round(r.roundedSellPrice || r.minSellPrice || 0),
+        r.maxCost === null || r.maxCost === undefined ? '' : Math.round(r.maxCost),
+        r.discount === null || r.discount === undefined ? '' : Math.round(r.discount),
+        dateStr(r.ts || Date.now())
+      ].join(','));
+      const csv = '\uFEFF' + [header, ...rows].join('\r\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `粗利計算_${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    let toastTimer = null;
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+    }
+
+    document.getElementById('clearBtn').addEventListener('click', () => {
+      itemNameEl.value = '';
+      priceEl.value = '';
+      costEl.value = '';
+      targetRateEl.value = DEFAULT_TARGET_RATE;
+      productTypeEl.value = DEFAULT_PRODUCT_TYPE;
+      roundingUnitEl.value = DEFAULT_ROUNDING_UNIT;
+      updateRoundingLabel();
+      resetOutputs();
+      saveDraft();
+    });
+
+    productTypeEl.addEventListener('change', () => {
+      targetRateEl.value = selectedProductRate();
+      saveDraft();
+    });
+
+    roundingUnitEl.addEventListener('change', () => {
+      updateRoundingLabel();
+      saveDraft();
+    });
+
+    [itemNameEl, priceEl, costEl, targetRateEl, productTypeEl, roundingUnitEl].forEach((el) => {
+      el.addEventListener('input', saveDraft);
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') calculate();
+      });
+    });
+
+    document.getElementById('calcBtn').addEventListener('click', calculate);
+
+    resetOutputs();
+    restoreDraft();
+    if (!targetRateEl.value) targetRateEl.value = DEFAULT_TARGET_RATE;
+    updateRoundingLabel();
+    renderHistory();
+  </script>
+</body>
+</html>
